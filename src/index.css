@@ -1,0 +1,161 @@
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Bangers&family=Bebas+Neue&family=Rajdhani:wght@400;600;700&family=Permanent+Marker&family=Noto+Serif+JP:wght@400;700&family=Space+Grotesk:wght@300;400;700&family=Epilogue:wght@400;700;900&family=Be+Vietnam+Pro:wght@400;500;700&family=Inter:wght@400;700;900&family=Tomorrow:wght@400;700;900&display=swap');
+
+@theme {
+  --font-tomorrow: "Tomorrow", sans-serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-inter: "Inter", sans-serif;
+  --font-display: "Epilogue", sans-serif;
+  --font-bangers: "Bangers", cursive;
+  --font-bebas: "Bebas Neue", cursive;
+  --font-rajdhani: "Rajdhani", sans-serif;
+  --font-marker: "Permanent Marker", cursive;
+  --font-noto: "Noto Serif JP", serif;
+  --font-space: "Space Grotesk", sans-serif;
+  --font-epilogue: "Epilogue", sans-serif;
+  --font-be-vietnam: "Be Vietnam Pro", sans-serif;
+
+  --color-manga-orange: #FF6B35;
+  --color-manga-purple: #A855F7;
+  --color-manga-cyan: #06B6D4;
+  --color-manga-pink: #EC4899;
+  --color-manga-yellow: #EAB308;
+  --color-dark-bg: #08080F;
+  --color-dark-surface: #0F0F1A;
+  --color-ink: #1a1a1a;
+  --color-paper: #f0ede8;
+}
+
+@layer base {
+  body {
+    @apply bg-dark-bg text-[#F5F0FF] font-tomorrow overflow-x-hidden;
+    transition: background-color 0.5s ease;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display font-black tracking-tight;
+  }
+
+  body.light-mode {
+    @apply bg-paper text-ink;
+  }
+}
+
+/* Custom Utilities for Manga Effects */
+@layer utilities {
+  .text-stroke-1 {
+    -webkit-text-stroke: 1px currentColor;
+  }
+  .text-stroke-2 {
+    -webkit-text-stroke: 2px currentColor;
+  }
+  .text-stroke-orange {
+    -webkit-text-stroke: 2px var(--color-manga-orange);
+  }
+  
+  .manga-shadow {
+    box-shadow: 6px 6px 0 0 #000;
+  }
+  
+  .manga-shadow-orange {
+    box-shadow: 12px 12px 0 0 var(--color-manga-orange);
+  }
+  
+  .manga-shadow-purple {
+    box-shadow: 12px 12px 0 0 var(--color-manga-purple);
+  }
+  
+  .manga-shadow-pink {
+    box-shadow: 15px 15px 0 0 var(--color-manga-pink);
+  }
+
+  .manga-shadow-cyan {
+    box-shadow: 12px 12px 0 0 var(--color-manga-cyan);
+  }
+  
+  /* Stats band gradients */
+  .bg-stats-gradient {
+    background: linear-gradient(90deg, rgba(255, 107, 53, 0.1), rgba(168, 85, 247, 0.1), rgba(6, 182, 212, 0.1));
+  }
+
+  /* Loader Styles */
+  .loader-container {
+    @apply fixed inset-0 z-[999999] bg-[#08080F] flex flex-col items-center justify-center overflow-hidden transition-all duration-700;
+  }
+  
+  .loader-grid {
+    background-image: linear-gradient(rgba(255, 107, 53, 0.06) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 107, 53, 0.06) 1px, transparent 1px);
+    background-size: 60px 60px;
+  }
+
+  .ld-corner {
+    @apply absolute w-7 h-7 border-manga-orange opacity-50;
+  }
+  
+  .ld-corner.tl { @apply top-7 left-7 border-t-2 border-l-2; }
+  .ld-corner.tr { @apply top-7 right-7 border-t-2 border-r-2; }
+  .ld-corner.bl { @apply bottom-7 left-7 border-b-2 border-l-2; }
+  .ld-corner.br { @apply bottom-7 right-7 border-b-2 border-r-2; }
+
+  .bg-gradient-a { background: linear-gradient(135deg, #1a0a00 0%, #3d1800 100%); }
+  .bg-gradient-b { background: linear-gradient(135deg, #001a2e 0%, #003d3d 100%); }
+  .bg-gradient-c { background: linear-gradient(135deg, #16001a 0%, #30003d 100%); }
+  .bg-gradient-d { background: linear-gradient(135deg, #1a1a00 0%, #3a3000 100%); }
+  .bg-gradient-e { background: linear-gradient(135deg, #1a0010 0%, #3d0028 100%); }
+  .bg-gradient-f { background: linear-gradient(135deg, #001a10 0%, #003d20 100%); }
+
+  
+  .screentone {
+    background-image: radial-gradient(circle, rgba(0,0,0,0.1) 1px, transparent 1px);
+    background-size: 8px 8px;
+  }
+  
+  .burst-text {
+    @apply pointer-events-none fixed z-[99999] font-display font-black text-2xl tracking-tighter;
+    animation: burstUp 0.8s ease-out forwards;
+  }
+
+  .bg-grid-white {
+    background-image: linear-gradient(to right, rgba(255, 255, 255, 0.1) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+
+  .light-mode .bg-grid-white {
+    background-image: linear-gradient(to right, rgba(0, 0, 0, 0.05) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(0, 0, 0, 0.05) 1px, transparent 1px);
+  }
+  
+  .light-mode .screentone {
+    background-image: radial-gradient(circle, rgba(0,0,0,0.05) 1px, transparent 1px);
+  }
+
+  .perspective-1000 {
+    perspective: 1000px;
+  }
+}
+
+@keyframes burstUp {
+  0% { opacity: 1; transform: translateY(0) scale(1) rotate(0deg); }
+  100% { opacity: 0; transform: translateY(-100px) scale(1.5) rotate(15deg); }
+}
+
+/* Animations from the original HTML */
+@keyframes inkSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.loader-ink {
+  animation: inkSpin 4s linear infinite;
+}
+
+@keyframes tickerScroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.animate-ticker {
+  animation: tickerScroll 30s linear infinite;
+}
