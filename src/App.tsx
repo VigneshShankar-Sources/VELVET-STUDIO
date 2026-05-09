@@ -189,6 +189,9 @@ const Loader = () => {
 };
 
 
+const BURST_POOL = ['✦', '★', '✿', '⚡', '🎨', '✏️', 'NICE!', 'COOL!', 'WOW!', 'BANG!'];
+const CURSOR_COLORS = ['#FF6B35', '#A855F7', '#06B6D4', '#EAB308', '#EC4899'];
+
 const CustomCursor = ({ color }: { color: string }) => {
   const cursorX = useMotionValue(-100);
   const cursorY = useMotionValue(-100);
@@ -214,9 +217,7 @@ const CustomCursor = ({ color }: { color: string }) => {
     delay: number;
   }[]>([]);
   const [bursts, setBursts] = useState<{ id: number; x: number; y: number; text: string; color: string }[]>([]);
-
-  const burstPool = ['✦', '★', '✿', '⚡', '🎨', '✏️', 'NICE!', 'COOL!', 'WOW!', 'BANG!'];
-  const colors = ['#FF6B35', '#A855F7', '#06B6D4', '#EAB308', '#EC4899'];
+  const audioCtxRef = useRef<AudioContext | null>(null);
 
   useEffect(() => {
     let lastTrailTime = 0;
@@ -250,13 +251,16 @@ const CustomCursor = ({ color }: { color: string }) => {
         id: Date.now(),
         x: e.clientX,
         y: e.clientY,
-        text: burstPool[Math.floor(Math.random() * burstPool.length)],
-        color: colors[Math.floor(Math.random() * colors.length)]
+        text: BURST_POOL[Math.floor(Math.random() * BURST_POOL.length)],
+        color: CURSOR_COLORS[Math.floor(Math.random() * CURSOR_COLORS.length)]
       };
       setBursts(prev => [...prev, newBurst]);
       
       try {
-        const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+        if (!audioCtxRef.current) {
+          audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+        }
+        const audioCtx = audioCtxRef.current;
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
         osc.type = 'sine';
@@ -273,7 +277,7 @@ const CustomCursor = ({ color }: { color: string }) => {
 
     const handleMouseUp = () => setIsClicking(false);
 
-    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mousemove', handleMouseMove, { passive: true });
     window.addEventListener('mousedown', handleMouseDown);
     window.addEventListener('mouseup', handleMouseUp);
     
@@ -282,7 +286,7 @@ const CustomCursor = ({ color }: { color: string }) => {
       window.removeEventListener('mousedown', handleMouseDown);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [burstPool, colors, cursorX, cursorY]);
+  }, [cursorX, cursorY]);
 
   return (
     <>
