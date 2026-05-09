@@ -189,59 +189,30 @@ const Loader = () => {
 };
 
 
+const BURST_POOL = ['✦', '★', '✿', '⚡', '🎨', '✏️', 'NICE!', 'COOL!', 'WOW!', 'BANG!'];
+const BURST_COLORS = ['#FF6B35', '#A855F7', '#06B6D4', '#EAB308', '#EC4899'];
+
 const CustomCursor = ({ color }: { color: string }) => {
   const cursorX = useMotionValue(-100);
   const cursorY = useMotionValue(-100);
   
-  // High stiffness and low damping for very snappy tracking
-  const springConfig = { damping: 25, stiffness: 700, mass: 0.1 };
+  // Ultra-responsive dot — near-instant tracking with minimal lag
+  const springConfig = useMemo(() => ({ damping: 28, stiffness: 800, mass: 0.02 }), []);
   const cursorXSpring = useSpring(cursorX, springConfig);
   const cursorYSpring = useSpring(cursorY, springConfig);
 
-  // Slightly slower for the ring effect, but still highly responsive
-  const ringSpringConfig = { damping: 25, stiffness: 400, mass: 0.2 };
+  // Ring follows closely with a subtle trailing delay
+  const ringSpringConfig = useMemo(() => ({ damping: 22, stiffness: 350, mass: 0.08 }), []);
   const ringXSpring = useSpring(cursorX, ringSpringConfig);
   const ringYSpring = useSpring(cursorY, ringSpringConfig);
 
   const [isClicking, setIsClicking] = useState(false);
-  const [trails, setTrails] = useState<{ 
-    id: number; 
-    x: number; 
-    y: number; 
-    shape: number; 
-    size: number;
-    rotation: number;
-    delay: number;
-  }[]>([]);
   const [bursts, setBursts] = useState<{ id: number; x: number; y: number; text: string; color: string }[]>([]);
 
-  const burstPool = ['✦', '★', '✿', '⚡', '🎨', '✏️', 'NICE!', 'COOL!', 'WOW!', 'BANG!'];
-  const colors = ['#FF6B35', '#A855F7', '#06B6D4', '#EAB308', '#EC4899'];
-
   useEffect(() => {
-    let lastTrailTime = 0;
-    
     const handleMouseMove = (e: MouseEvent) => {
       cursorX.set(e.clientX);
       cursorY.set(e.clientY);
-      
-      const now = Date.now();
-      // Throttle trail creation slightly to prevent massive state updates and lag
-      if (now - lastTrailTime > 30 && Math.random() > 0.4) {
-        lastTrailTime = now;
-        setTrails(prev => [
-          ...prev.slice(-15), 
-          { 
-            id: Math.random(), 
-            x: e.clientX, 
-            y: e.clientY,
-            shape: Math.floor(Math.random() * 4), 
-            size: Math.random() * 12 + 6,
-            rotation: Math.random() * 360,
-            delay: Math.random() * 0.05
-          }
-        ]);
-      }
     };
 
     const handleMouseDown = (e: MouseEvent) => {
@@ -250,30 +221,15 @@ const CustomCursor = ({ color }: { color: string }) => {
         id: Date.now(),
         x: e.clientX,
         y: e.clientY,
-        text: burstPool[Math.floor(Math.random() * burstPool.length)],
-        color: colors[Math.floor(Math.random() * colors.length)]
+        text: BURST_POOL[Math.floor(Math.random() * BURST_POOL.length)],
+        color: BURST_COLORS[Math.floor(Math.random() * BURST_COLORS.length)]
       };
-      setBursts(prev => [...prev, newBurst]);
-      
-      try {
-        const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(800, audioCtx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(200, audioCtx.currentTime + 0.1);
-        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.1);
-      } catch (err) {}
+      setBursts(prev => [...prev.slice(-3), newBurst]);
     };
 
     const handleMouseUp = () => setIsClicking(false);
 
-    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mousemove', handleMouseMove, { passive: true });
     window.addEventListener('mousedown', handleMouseDown);
     window.addEventListener('mouseup', handleMouseUp);
     
@@ -282,13 +238,13 @@ const CustomCursor = ({ color }: { color: string }) => {
       window.removeEventListener('mousedown', handleMouseDown);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [burstPool, colors, cursorX, cursorY]);
+  }, [cursorX, cursorY]);
 
   return (
     <>
       {/* Dot */}
       <motion.div
-        className="fixed rounded-full pointer-events-none z-[99999] transition-[width,height,background-color] duration-200"
+        className="fixed rounded-full pointer-events-none z-[99999] transform-gpu"
         style={{
           x: cursorXSpring,
           y: cursorYSpring,
@@ -297,13 +253,14 @@ const CustomCursor = ({ color }: { color: string }) => {
           height: isClicking ? '12px' : '8px',
           translateX: '-50%',
           translateY: '-50%',
-          boxShadow: `0 0 10px ${color}66`
+          boxShadow: `0 0 10px ${color}66`,
+          willChange: 'transform'
         }}
       />
       
       {/* Ring */}
       <motion.div
-        className="fixed rounded-full border-2 pointer-events-none z-[99998] transition-[width,height,border-color] duration-300"
+        className="fixed rounded-full border-2 pointer-events-none z-[99998] transform-gpu"
         style={{
           x: ringXSpring,
           y: ringYSpring,
@@ -312,7 +269,8 @@ const CustomCursor = ({ color }: { color: string }) => {
           height: isClicking ? '20px' : '28px',
           translateX: '-50%',
           translateY: '-50%',
-          opacity: isClicking ? 1 : 0.6
+          opacity: isClicking ? 1 : 0.6,
+          willChange: 'transform'
         }}
       />
 
@@ -328,46 +286,6 @@ const CustomCursor = ({ color }: { color: string }) => {
         </div>
       ))}
 
-      {/* Trails */}
-      <AnimatePresence>
-        {trails.map(trail => (
-          <motion.div
-            key={trail.id}
-            initial={{ opacity: 0, scale: 0, rotate: trail.rotation }}
-            animate={{ 
-              opacity: [0, 1, 0], 
-              scale: [0, 1.5, 0], 
-              rotate: trail.rotation + 360,
-              x: (Math.random() - 0.5) * 60,
-              y: (Math.random() - 0.5) * 60
-            }}
-            exit={{ opacity: 0, scale: 0 }}
-            transition={{ 
-              duration: 0.8, 
-              ease: "circOut",
-              delay: trail.delay 
-            }}
-            className="fixed pointer-events-none z-[99997]"
-            style={{
-              left: trail.x,
-              top: trail.y,
-              width: trail.size,
-              height: trail.size,
-              background: `linear-gradient(135deg, var(--color-manga-orange), var(--color-manga-pink))`,
-              boxShadow: '0 0 15px rgba(255, 107, 53, 0.5)',
-              clipPath: trail.shape === 0 
-                ? 'polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)' 
-                : trail.shape === 1 
-                ? 'circle(50% at 50% 50%)' 
-                : trail.shape === 2
-                ? 'polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)'
-                : 'polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%)',
-              transform: 'translate(-50%, -50%)',
-            }}
-            onAnimationComplete={() => setTrails(prev => prev.filter(t => t.id !== trail.id))}
-          />
-        ))}
-      </AnimatePresence>
     </>
   );
 };
@@ -422,8 +340,8 @@ const Navigation = ({ isLightMode, toggleMode }: { isLightMode: boolean, toggleM
             <motion.a
               href={`#${item.id}`}
               whileHover={{ 
-                x: [0, -2, 2, 0],
-                transition: { duration: 0.1, repeat: Infinity }
+                color: 'var(--color-manga-orange)',
+                transition: { duration: 0.2 }
               }}
               className="text-[12px] font-bold tracking-[3px] uppercase text-[#F5F0FF]/55 hover:text-manga-orange transition-colors duration-200 light-mode:text-ink/75 inline-block"
             >
@@ -495,17 +413,14 @@ const Hero = () => {
             whileInView={{ opacity: 1, x: 0, rotate: 0, scale: 1 }}
             viewport={{ once: true }}
             whileHover={{ 
-              scale: 1.1, 
-              rotate: [-1, 1, -1, 0],
-              transition: { duration: 0.2, repeat: Infinity }
+              scale: 1.05, 
+              transition: { duration: 0.3 }
             }}
             animate={{ 
               y: [0, -12, 0],
-              skewX: [-0.5, 0.5, -0.5]
             }}
             transition={{ 
               y: { duration: 4, repeat: Infinity, ease: "easeInOut" },
-              skewX: { duration: 0.1, repeat: Infinity },
               opacity: { duration: 0.8 },
               rotate: { duration: 0.8 },
               scale: { type: "spring", damping: 10 }
@@ -513,11 +428,6 @@ const Hero = () => {
             className="relative group inline-block font-inter font-black italic select-none cursor-pointer transition-colors duration-300 text-manga-pink light-mode:text-manga-purple"
           >
             <span className="relative z-10 block">VELVET</span>
-            <motion.div 
-              className="absolute -inset-8 bg-manga-orange/30 blur-3xl rounded-full -z-10 opacity-0 group-hover:opacity-100 transition-opacity"
-              animate={{ scale: [1, 1.4, 1], opacity: [0, 0.4, 0] }}
-              transition={{ duration: 2, repeat: Infinity }}
-            />
           </motion.div>
           <br />
           <motion.div 
@@ -525,17 +435,14 @@ const Hero = () => {
             whileInView={{ opacity: 1, x: 0, rotate: 0, scale: 1 }}
             viewport={{ once: true }}
             whileHover={{ 
-              scale: 1.1, 
-              rotate: [1, -1, 1, 0],
-              transition: { duration: 0.2, repeat: Infinity }
+              scale: 1.05, 
+              transition: { duration: 0.3 }
             }}
             animate={{ 
               y: [0, 12, 0],
-              skewX: [0.5, -0.5, 0.5]
             }}
             transition={{ 
               y: { duration: 4, repeat: Infinity, ease: "easeInOut", delay: 0.5 },
-              skewX: { duration: 0.1, repeat: Infinity, delay: 0.05 },
               opacity: { duration: 0.8, delay: 0.2 },
               rotate: { duration: 0.8, delay: 0.2 },
               scale: { type: "spring", damping: 10 }
@@ -543,11 +450,6 @@ const Hero = () => {
             className="text-transparent text-stroke-2 text-stroke-orange relative group inline-block font-inter font-black italic select-none cursor-pointer light-mode:text-manga-orange light-mode:text-stroke-0"
           >
             <span className="relative z-10 block">STUDIO</span>
-            <motion.div 
-              className="absolute -inset-8 bg-manga-cyan/30 blur-3xl rounded-full -z-10 opacity-0 group-hover:opacity-100 transition-opacity"
-              animate={{ scale: [1, 1.4, 1], opacity: [0, 0.4, 0] }}
-              transition={{ duration: 2, repeat: Infinity, delay: 0.5 }}
-            />
           </motion.div>
         </h1>
         
@@ -830,8 +732,8 @@ const StorySection = () => {
         >
           <div className="absolute inset-x-0 bottom-0 h-1/2 bg-[repeating-conic-gradient(from_0deg_at_50%_120%,_transparent_0deg,_rgba(0,0,0,0.04)_4deg)]" />
           <motion.div 
-            animate={{ skewX: [-20, 20, -20] }}
-            transition={{ duration: 0.1, repeat: Infinity }}
+            animate={{ skewX: [-8, 8, -8] }}
+            transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
             className="font-bangers text-5xl mb-4 italic group-hover:text-white"
           >
             VLSI!
@@ -1351,124 +1253,20 @@ const Footer = () => (
 );
 
 
-// --- Particle Background ---
+// --- Particle Background (Lightweight CSS-only version) ---
 const FloatingBackground = () => {
   return (
     <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
-      {/* High-Octane Global Scanline */}
-      <div className="absolute inset-0 opacity-[0.03] z-50 overflow-hidden">
-        <div className="absolute inset-0 bg-[repeating-linear-gradient(0deg,transparent,transparent_2px,rgba(255,107,53,0.1)_2px,rgba(255,107,53,0.1)_4px)]" />
-        <motion.div 
-          animate={{ y: ['-100%', '100%'] }} 
-          transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
-          className="absolute inset-x-0 h-1 bg-manga-orange/20 blur-sm" 
-        />
-      </div>
+      {/* Subtle scanline overlay — pure CSS, no JS animation */}
+      <div className="absolute inset-0 opacity-[0.02] bg-[repeating-linear-gradient(0deg,transparent,transparent_2px,rgba(255,107,53,0.08)_2px,rgba(255,107,53,0.08)_4px)]" />
 
-      {/* Moving Screentone Grid */}
-      <motion.div 
-        animate={{ 
-          backgroundPosition: ['0px 0px', '200px 200px'],
-        }}
-        transition={{ 
-          duration: 30, 
-          repeat: Infinity, 
-          ease: "linear" 
-        }}
-        className="absolute inset-0 bg-grid-white opacity-[0.03] light-mode:opacity-[0.05]" 
-      />
-      
-      {/* Floating Manga Speed Lines */}
-      {[...Array(24)].map((_, i) => {
-        const colors = ['var(--color-manga-pink)', 'var(--color-manga-cyan)', 'var(--color-manga-orange)', '#ffffff'];
-        const color = colors[i % colors.length];
-        return (
-          <motion.div
-            key={`line-${i}`}
-            initial={{ x: '-150%', y: `${Math.random() * 100}%`, opacity: 0 }}
-            animate={{ x: '250%', opacity: [0, 0.8, 0] }}
-            transition={{
-              duration: Math.random() * 0.6 + 0.2, // Explosive speed
-              repeat: Infinity,
-              delay: Math.random() * 8,
-              ease: "circIn"
-            }}
-            className="absolute h-[2px] w-[600px] skew-x-[-35deg]"
-            style={{ 
-              background: `linear-gradient(90deg, transparent, ${color}, transparent)`,
-              height: `${Math.random() * 3 + 1}px`,
-              filter: `blur(${Math.random() * 2}px)`
-            }}
-          />
-        );
-      })}
+      {/* Slow-moving grid — CSS animation instead of Framer Motion */}
+      <div className="absolute inset-0 bg-grid-white opacity-[0.03] light-mode:opacity-[0.05] animate-[gridDrift_60s_linear_infinite]" />
 
-      {/* Floating Fun Shapes */}
-      {[...Array(40)].map((_, i) => (
-        <motion.div
-          key={`shape-${i}`}
-          initial={{ 
-            x: `${Math.random() * 100}%`, 
-            y: `${Math.random() * 100}%`, 
-            opacity: 0,
-            scale: 0.1,
-          }}
-          animate={{ 
-            y: [`${Math.random() * 100}%`, `${Math.random() * 100}%`],
-            opacity: [0, 0.25, 0],
-            scale: [0.1, 1.2, 0.1],
-            rotate: [0, 720],
-          }}
-          transition={{
-            duration: Math.random() * 10 + 10,
-            repeat: Infinity,
-            ease: "easeInOut"
-          }}
-          className="absolute"
-        >
-          {i % 6 === 0 ? (
-            <Star className="text-manga-pink/25 w-12 h-12" />
-          ) : i % 6 === 1 ? (
-            <Zap className="text-manga-yellow/25 w-10 h-10" />
-          ) : i % 6 === 2 ? (
-            <Palette className="text-manga-cyan/20 w-8 h-8" />
-          ) : i % 6 === 3 ? (
-            <Send className="text-manga-purple/20 w-6 h-6 -rotate-45" />
-          ) : i % 6 === 4 ? (
-            <div className="w-12 h-[1px] bg-manga-orange/30 rotate-45" />
-          ) : (
-            <div className="w-8 h-8 border-2 border-white/10 rotate-[30deg]" />
-          )}
-        </motion.div>
-      ))}
-
-      {/* Radiant Blobs */}
-      <motion.div
-        animate={{
-          scale: [1, 1.3, 1],
-          opacity: [0.1, 0.2, 0.1],
-          rotate: [0, 90, 0],
-        }}
-        transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
-        className="absolute -top-40 -left-40 w-[600px] h-[600px] bg-manga-orange/10 blur-[150px] rounded-full"
-      />
-      <motion.div
-        animate={{
-          scale: [1.3, 1, 1.3],
-          opacity: [0.1, 0.15, 0.1],
-          rotate: [0, -90, 0],
-        }}
-        transition={{ duration: 25, repeat: Infinity, ease: "easeInOut" }}
-        className="absolute -bottom-40 -right-40 w-[800px] h-[800px] bg-manga-purple/10 blur-[180px] rounded-full"
-      />
-      <motion.div
-        animate={{
-          x: [-100, 100, -100],
-          y: [-50, 50, -50],
-        }}
-        transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
-        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[1000px] bg-manga-cyan/5 blur-[200px] rounded-full"
-      />
+      {/* Ambient color blobs — CSS transforms are GPU-accelerated */}
+      <div className="absolute -top-40 -left-40 w-[600px] h-[600px] bg-manga-orange/10 blur-[150px] rounded-full animate-[blobPulse_20s_ease-in-out_infinite]" />
+      <div className="absolute -bottom-40 -right-40 w-[800px] h-[800px] bg-manga-purple/10 blur-[180px] rounded-full animate-[blobPulse_25s_ease-in-out_infinite_reverse]" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[1000px] bg-manga-cyan/5 blur-[200px] rounded-full animate-[blobDrift_30s_linear_infinite]" />
     </div>
   );
 };
@@ -1492,12 +1290,6 @@ export default function App() {
     document.body.classList.toggle('light-mode');
   };
 
-  // Click Sound (Visual Placeholder or Real if permitted - Using Visual SFX)
-  const [clicks, setClicks] = useState<{ id: number; x: number; y: number; text: string }[]>([]);
-  const handleGlobalClick = (e: React.MouseEvent) => {
-    const sfx = ['POW!', 'BANG!', 'BAM!', 'CLICK!'][Math.floor(Math.random() * 4)];
-    setClicks(prev => [...prev, { id: Date.now(), x: e.clientX, y: e.clientY, text: sfx }]);
-  };
 
   // Section Color Awareness
   useEffect(() => {
@@ -1518,7 +1310,7 @@ export default function App() {
   }, []);
 
   return (
-    <div className="relative cursor-none select-none" onClick={handleGlobalClick}>
+    <div className="relative cursor-none select-none">
       <AnimatePresence>
         {loading && <Loader />}
       </AnimatePresence>
@@ -1555,31 +1347,7 @@ export default function App() {
         </section>
       </main>
 
-
       <Footer />
-
-      {/* Click Visual SFX */}
-      <AnimatePresence>
-        {clicks.map(click => (
-          <motion.div
-            key={click.id}
-            initial={{ scale: 0.5, rotate: -20, opacity: 0 }}
-            animate={{ scale: 1.2, rotate: 10, opacity: 1 }}
-            exit={{ scale: 1, rotate: 0, opacity: 0 }}
-            className="fixed pointer-events-none font-display font-black text-4xl text-manga-pink stroke-white stroke-2 z-[9999]"
-            style={{
-              left: click.x,
-              top: click.y,
-              transform: 'translate(-50%, -50%)',
-              textShadow: '4px 4px 0 #000',
-              WebkitTextStroke: '2px white'
-            }}
-            onAnimationComplete={() => setClicks(prev => prev.filter(c => c.id !== click.id))}
-          >
-            {click.text}
-          </motion.div>
-        ))}
-      </AnimatePresence>
     </div>
   );
 }
