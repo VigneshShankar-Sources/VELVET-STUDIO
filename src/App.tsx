@@ -208,6 +208,28 @@ const CustomCursor = ({ color }: { color: string }) => {
 
   const [isClicking, setIsClicking] = useState(false);
   const [bursts, setBursts] = useState<{ id: number; x: number; y: number; text: string; color: string }[]>([]);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+
+  // Play a short click SFX using a single reusable AudioContext
+  const playClickSound = () => {
+    try {
+      if (!audioCtxRef.current) {
+        audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      }
+      const ctx = audioCtxRef.current;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(800, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(200, ctx.currentTime + 0.1);
+      gain.gain.setValueAtTime(0.1, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.1);
+    } catch (_) {}
+  };
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -217,6 +239,7 @@ const CustomCursor = ({ color }: { color: string }) => {
 
     const handleMouseDown = (e: MouseEvent) => {
       setIsClicking(true);
+      playClickSound();
       const newBurst = {
         id: Date.now(),
         x: e.clientX,
